@@ -1,0 +1,33 @@
+@Library('pgr_automation_libraries') _
+
+pipeline {
+    agent {
+        kubernetes {
+            label 'k8-jenkins'
+            defaultContainer 'jnlp'
+            yaml kubernetesAgent("http://192.168.1.120:8070")
+        }
+    }
+    stages {
+        stage('Approve Scripts') {
+            steps {
+                script {
+                  // Call the approveScripts function with the method name to be approved
+                    approveScripts('java.lang.Runtime.exec')
+                }
+            }
+        }
+        stage('Build') {
+            steps {
+                script {
+                    sh """
+                        echo "Building"
+                        ls -lrth
+                        pwd
+                        cat /etc/os-release                   
+                         """
+                }
+            }
+        }
+    }
+}
