@@ -12,21 +12,45 @@ pipeline {
         stage('Approve Scripts') {
             steps {
                 script {
-                  // Call the approveScripts function with the method name to be approved
+                    // Call the approveScripts function with the method name to be approved
                     approveScripts('java.lang.Runtime.exec')
                 }
             }
         }
-        stage('Build') {
+        stage('Build & Test') {
             steps {
-                script {
-                    sh """
-                        echo "Building"
-                        ls -lrth
-                        pwd
-                        cat /etc/os-release                   
-                         """
+              script {
+                  // Check if the directory exists before trying to cd into it
+                if (fileExists('spring-bootapp')) {
+                   dir('spring-bootapp') {
+                     buildAndTest(
+                       appDirectory: '.',  // Current directory is now spring-bootapp
+                       mavenOptions: '--add-opens java.base/java.lang=ALL-UNNAMED',  // Custom Maven options
+                       skipTests: false  // Set to true to skip tests
+                     )
+                   }
+            }   else {
+                  error "Directory 'spring-bootapp' does not exist"
                 }
+        }
+    }
+}
+
+        stage('Generate and Publish Coverage Report') {
+            steps {
+                // Call the shared library method to generate and publish the coverage report
+                generateAndPublishCoverageReport('spring-bootapp')  // Pass the project directory if needed
+            }
+        }
+        stage('SonarQube analysis') {
+            steps {
+                input 'Approve ?'
+                sonarQubeAnalysis(
+                    projectKey: 'CICD-Spring-Boot',  // Specify the SonarQube project key
+                    appDirectory: 'spring-bootapp',  // Specify the directory where the app resides
+                    projectName: 'spring_boot_app',
+                    vaultPath: 'secret/data/sonarcred'
+                )
             }
         }
     }
